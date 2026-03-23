@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodingBat Leaderboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0a0b0f;
+      --surface: #13151c;
+      --surface2: #1c1f2b;
+      --border: #252836;
+      --accent: #00e5a0;
+      --accent2: #7c5cfc;
+      --accent3: #ff6b6b;
+      --text: #e8eaf0;
+      --text-muted: #6b7080;
+      --text-dim: #3a3d4a;
+      --gold: #ffd700;
+      --silver: #c0c0c0;
+      --bronze: #cd7f32;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Syne', sans-serif;
+      --radius: 12px;
+      --transition: 0.2s ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 { width: 600px; height: 600px; background: rgba(0,229,160,0.06); top: -200px; left: -100px; }
+    .orb-2 { width: 500px; height: 500px; background: rgba(124,92,252,0.06); bottom: -100px; right: -100px; }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    header {
+      padding: 40px 0 32px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .logo-group { display: flex; flex-direction: column; gap: 6px; }
+
+    .logo-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-family: var(--sans);
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .stat-pill strong { color: var(--text); font-size: 14px; }
+
+    /* ─── TOOLBAR ─────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover:not(:disabled) {
+      background: #00ffb3;
+      box-shadow: 0 0 24px rgba(0,229,160,0.4);
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-export:hover {
+      border-color: var(--accent2) !important;
+      color: var(--accent2) !important;
+      box-shadow: 0 0 18px rgba(124,92,252,0.25);
+    }
+
+    /* ─── REFRESH BAR ─────────────────── */
+    .refresh-bar {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      gap: 16px;
+      align-items: center;
+    }
+    .refresh-bar.visible { display: flex; }
+
+    .refresh-bar-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    .refresh-count {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    /* ─── SECTION FILTER ─────────────── */
+    .filter-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding-top: 6px;
+      white-space: nowrap;
+    }
+
+    .section-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .chip {
+      padding: 5px 14px;
+      border-radius: 50px;
+      font-family: var(--mono);
+      font-size: 11px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--transition);
+      user-select: none;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .chip.active {
+      background: rgba(0,229,160,0.12);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .chip-all { border-color: var(--accent2); color: var(--accent2); }
+    .chip-all:hover, .chip-all.active {
+      background: rgba(124,92,252,0.15);
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    /* ─── TABLE ──────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    thead th {
+      padding: 14px 16px;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    thead th.sortable { cursor: pointer; }
+    thead th.sortable:hover { color: var(--accent); }
+    thead th.sorted { color: var(--accent); }
+    thead th .sort-icon { margin-left: 4px; opacity: 0.5; }
+    thead th.sorted .sort-icon { opacity: 1; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+
+    tbody td { padding: 14px 16px; vertical-align: middle; }
+
+    .col-rank {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 16px;
+      width: 60px;
+      color: var(--text-dim);
+    }
+    .rank-1 { color: var(--gold) !important; }
+    .rank-2 { color: var(--silver) !important; }
+    .rank-3 { color: var(--bronze) !important; }
+
+    .col-user { min-width: 140px; }
+    .user-id { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text); }
+    .user-link { font-size: 11px; color: var(--text-muted); text-decoration: none; }
+    .user-link:hover { color: var(--accent); }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .status-inprogress { background: rgba(255,200,0,0.12); color: #ffc800; border: 1px solid rgba(255,200,0,0.3); }
+    .status-done { background: rgba(0,229,160,0.12); color: var(--accent); border: 1px solid rgba(0,229,160,0.3); }
+    .status-error { background: rgba(255,107,107,0.12); color: var(--accent3); border: 1px solid rgba(255,107,107,0.3); }
+    .status-pending { background: rgba(107,112,128,0.12); color: var(--text-muted); border: 1px solid rgba(107,112,128,0.3); }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .status-inprogress .status-dot { animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .score-cell { text-align: center; font-family: var(--mono); font-size: 13px; min-width: 80px; }
+    .score-0 { color: var(--text-dim); }
+    .score-low { color: var(--text-muted); }
+    .score-mid { color: var(--text); }
+    .score-high { color: var(--accent); font-weight: 700; }
+
+    .score-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .score-mini-bar { width: 44px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .score-mini-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    .col-total { font-family: var(--mono); font-weight: 700; font-size: 16px; color: var(--text); min-width: 80px; text-align: center; }
+    .total-highlight { background: rgba(0,229,160,0.06); border-left: 2px solid rgba(0,229,160,0.4); }
+
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px 20px; gap: 16px; color: var(--text-muted);
+    }
+    .empty-icon { font-size: 48px; opacity: 0.4; }
+    .empty-title { font-size: 18px; font-weight: 700; color: var(--text); }
+    .empty-sub { font-family: var(--mono); font-size: 12px; text-align: center; }
+
+    /* ─── CSV PANEL ─────────────────── */
+    .csv-panel { display: none; margin-top: 20px; }
+    .csv-panel.open { display: block; }
+    .csv-panel-inner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .csv-panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .csv-panel-title { font-family: var(--mono); font-size: 12px; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+    textarea#csv-editor {
+      width: 100%; min-height: 180px;
+      background: #0d0f16; border: none;
+      color: var(--accent); font-family: var(--mono); font-size: 13px; line-height: 1.6;
+      padding: 16px 20px; resize: vertical; outline: none;
+    }
+    .csv-actions { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* ─── TOAST ─────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 20px; border-radius: 8px;
+      font-family: var(--mono); font-size: 13px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); z-index: 999;
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.3s ease; max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-color: var(--accent); color: var(--accent); }
+    #toast.error { border-color: var(--accent3); color: var(--accent3); }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="app">
+    <header>
+      <div class="logo-group">
+        <span class="logo-eyebrow">// ranking system</span>
+        <h1>CodingBat <span>Leaderboard</span></h1>
+      </div>
+      <div class="header-meta">
+        <div class="stat-pill">
+          <span>Students</span>
+          <strong id="stat-users">—</strong>
+        </div>
+        <div class="stat-pill">
+          <span>Last updated</span>
+          <strong id="stat-updated">Never</strong>
+        </div>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <button class="btn btn-primary" id="btn-refresh" onclick="triggerRefresh()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Refresh Data
+      </button>
+      <button class="btn btn-ghost" onclick="toggleCsvPanel()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Edit Users CSV
+      </button>
+      <button class="btn btn-ghost btn-export" id="btn-export" onclick="exportLeaderboard()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export CSV
+      </button>
+    </div>
+
+    <div class="refresh-bar" id="refresh-bar">
+      <span class="refresh-bar-label">SYNCING</span>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <span class="refresh-count" id="progress-count">0 / 0</span>
+    </div>
+
+    <div class="csv-panel" id="csv-panel">
+      <div class="csv-panel-inner">
+        <div class="csv-panel-header">
+          <span class="csv-panel-title">users.csv — Edit user list</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">Format: USERID,PROFILELINK</span>
+        </div>
+        <textarea id="csv-editor" placeholder="USERID,PROFILELINK&#10;24251a05v0,https://codingbat.com/done?user=..."></textarea>
+        <div class="csv-actions">
+          <button class="btn btn-ghost" onclick="toggleCsvPanel()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveCsv()">Save CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-row" id="filter-row" style="display:none">
+      <span class="filter-label">Sections:</span>
+      <div class="section-chips" id="section-chips"></div>
+    </div>
+
+    <div class="table-wrap">
+      <table id="leaderboard-table">
+        <thead id="table-head">
+          <tr>
+            <th>#</th><th>Student</th><th>Status</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="4">
+            <div class="empty-state">
+              <div class="empty-icon">📊</div>
+              <div class="empty-title">No data yet</div>
+              <div class="empty-sub">Click <strong>Refresh Data</strong> to fetch leaderboard from CodingBat</div>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const API = '';
+    let allSections = [];
+    let selectedSections = new Set();
+    let leaderboardData = [];
+    let defaultSections = ['Recursion-1', 'Recursion-2']; // fallback default
+    let sortCol = 'total';
+    let sortAsc = false;
+    let pollingInterval = null;
+
+    const LS_SELECTED = 'cb_selected_sections';
+    const LS_DATA     = 'cb_leaderboard_data';
+    const LS_UPDATED  = 'cb_last_updated';
+    const LS_SECTIONS = 'cb_all_sections';
+
+    // ─── INIT ────────────────────────────────────────────────────────
+    async function init() {
+      const savedUpdated = localStorage.getItem(LS_UPDATED);
+      if (savedUpdated) document.getElementById('stat-updated').textContent = savedUpdated;
+
+      loadCsv();
+
+      try {
+        const resp = await fetch(`${API}/api/leaderboard`);
+        const data = await resp.json();
+
+        allSections = data.sections || [];
+        leaderboardData = data.users || [];
+        if (data.defaultSections && data.defaultSections.length > 0) {
+          defaultSections = data.defaultSections;
+        }
+
+        // Restore or apply default section selection
+        const saved = localStorage.getItem(LS_SELECTED);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Only keep sections that still exist
+          selectedSections = new Set(parsed.filter(s => allSections.includes(s)));
+        }
+        // If nothing saved or nothing valid, use server-defined defaults
+        if (selectedSections.size === 0) {
+          selectedSections = new Set(defaultSections.filter(s => allSections.includes(s)));
+          if (selectedSections.size === 0) {
+            // defaultSections might not be in allSections yet — add them
+            defaultSections.forEach(s => selectedSections.add(s));
+          }
+        }
+
+        renderSectionChips();
+        renderTable();
+
+        if (data.refreshStatus === 'RUNNING') startPolling();
+      } catch (e) {
+        // Fallback to cached data
+        const savedData = localStorage.getItem(LS_DATA);
+        const savedSections = localStorage.getItem(LS_SECTIONS);
+        if (savedData) leaderboardData = JSON.parse(savedData);
+        if (savedSections) allSections = JSON.parse(savedSections);
+
+        const saved = localStorage.getItem(LS_SELECTED);
+        if (saved) {
+          selectedSections = new Set(JSON.parse(saved));
+        } else {
+          selectedSections = new Set(defaultSections);
+        }
+
+        renderSectionChips();
+        renderTable();
+        showToast('Could not reach server — showing cached data', 'error');
+      }
+    }
+
+    // ─── REFRESH ─────────────────────────────────────────────────────
+    async function triggerRefresh() {
+      const btn = document.getElementById('btn-refresh');
+      btn.disabled = true;
+      try {
+        await fetch(`${API}/api/refresh`, { method: 'POST' });
+        showToast('Refresh started!', 'success');
+        startPolling();
+      } catch (e) {
+        showToast('Failed to start refresh', 'error');
+        btn.disabled = false;
+      }
+    }
+
+    function startPolling() {
+      if (pollingInterval) clearInterval(pollingInterval);
+      document.getElementById('refresh-bar').classList.add('visible');
+      pollingInterval = setInterval(pollStatus, 1500);
+    }
+
+    async function pollStatus() {
+      try {
+        const resp = await fetch(`${API}/api/refresh/status`);
+        const data = await resp.json();
+        const users = data.users || [];
+        const total = data.total || 0;
+        const completed = data.completed || 0;
+
+        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        document.getElementById('progress-fill').style.width = pct + '%';
+        document.getElementById('progress-count').textContent = `${completed} / ${total}`;
+
+        leaderboardData = users;
+
+        // Register any newly discovered sections
+        users.forEach(u => {
+          Object.keys(u.sectionScores || {}).forEach(s => {
+            if (!allSections.includes(s)) {
+              allSections.push(s);
+              renderSectionChips();
+            }
+          });
+        });
+
+        renderTable();
+
+        if (data.refreshStatus === 'DONE' || data.refreshStatus === 'IDLE') {
+          clearInterval(pollingInterval);
+          pollingInterval = null;
+          document.getElementById('refresh-bar').classList.remove('visible');
+          document.getElementById('btn-refresh').disabled = false;
+
+          const now = new Date().toLocaleString();
+          localStorage.setItem(LS_UPDATED, now);
+          localStorage.setItem(LS_DATA, JSON.stringify(leaderboardData));
+          localStorage.setItem(LS_SECTIONS, JSON.stringify(allSections));
+          document.getElementById('stat-updated').textContent = now;
+          showToast('Leaderboard updated!', 'success');
+        }
+      } catch (e) {
+        console.error('Poll error:', e);
+      }
+    }
+
+    // ─── SECTIONS ─────────────────────────────────────────────────────
+    function renderSectionChips() {
+      const container = document.getElementById('section-chips');
+      const filterRow = document.getElementById('filter-row');
+      if (allSections.length === 0) { filterRow.style.display = 'none'; return; }
+      filterRow.style.display = 'flex';
+
+      const allActive = allSections.every(s => selectedSections.has(s));
+      let html = `<span class="chip chip-all ${allActive ? 'active' : ''}" onclick="toggleAll()">All</span>`;
+      allSections.forEach(s => {
+        const active = selectedSections.has(s);
+        html += `<span class="chip ${active ? 'active' : ''}" onclick="toggleSection('${s}')">${s}</span>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function toggleSection(section) {
+      if (selectedSections.has(section)) selectedSections.delete(section);
+      else selectedSections.add(section);
+      saveSelectedSections();
+      renderSectionChips();
+      renderTable();
+    }
+
+    function toggleAll() {
+      if (allSections.every(s => selectedSections.has(s))) selectedSections.clear();
+      else selectedSections = new Set(allSections);
+      saveSelectedSections();
+      renderSectionChips();
+      renderTable();
+    }
+
+    function saveSelectedSections() {
+      localStorage.setItem(LS_SELECTED, JSON.stringify([...selectedSections]));
+    }
+
+    // ─── TABLE ────────────────────────────────────────────────────────
+    function sortBy(col) {
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = false; }
+      renderTable();
+    }
+
+    function renderTable() {
+      const visibleSections = allSections.filter(s => selectedSections.has(s));
+
+      const sorted = [...leaderboardData].sort((a, b) => {
+        if (sortCol === 'total') {
+          return sortAsc
+            ? computeTotal(a, visibleSections) - computeTotal(b, visibleSections)
+            : computeTotal(b, visibleSections) - computeTotal(a, visibleSections);
+        }
+        if (sortCol === 'user') {
+          return sortAsc
+            ? a.userId.localeCompare(b.userId)
+            : b.userId.localeCompare(a.userId);
+        }
+        const va = (a.sectionScores || {})[sortCol] || 0;
+        const vb = (b.sectionScores || {})[sortCol] || 0;
+        return sortAsc ? va - vb : vb - va;
+      });
+
+      document.getElementById('stat-users').textContent = sorted.length;
+
+      // Max per section for bar scaling
+      const maxPerSection = {};
+      visibleSections.forEach(s => {
+        maxPerSection[s] = Math.max(1, ...sorted.map(u => (u.sectionScores || {})[s] || 0));
+      });
+
+      // Build thead
+      const headTr = document.getElementById('table-head').querySelector('tr');
+      let headHtml = `
+        <th>#</th>
+        <th class="sortable ${sortCol==='user'?'sorted':''}" onclick="sortBy('user')">
+          Student <span class="sort-icon">${sortCol==='user'?(sortAsc?'↑':'↓'):'↕'}</span>
+        </th>
+        <th>Status</th>
+        <th class="sortable col-total total-highlight ${sortCol==='total'?'sorted':''}" onclick="sortBy('total')">
+          Total <span class="sort-icon">${sortCol==='total'?(sortAsc?'↑':'↓'):'↓'}</span>
+        </th>
+      `;
+      visibleSections.forEach(s => {
+        headHtml += `<th class="sortable score-cell ${sortCol===s?'sorted':''}" onclick="sortBy('${s}')">
+          ${s} <span class="sort-icon">${sortCol===s?(sortAsc?'↑':'↓'):'↕'}</span>
+        </th>`;
+      });
+      headTr.innerHTML = headHtml;
+
+      const tbody = document.getElementById('table-body');
+      if (sorted.length === 0) {
+        const cols = 4 + visibleSections.length;
+        tbody.innerHTML = `<tr><td colspan="${cols}">
+          <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <div class="empty-title">No data yet</div>
+            <div class="empty-sub">Click <strong>Refresh Data</strong> to fetch leaderboard from CodingBat</div>
+          </div>
+        </td></tr>`;
+        return;
+      }
+
+      let html = '';
+      sorted.forEach((u, i) => {
+        const rank = i + 1;
+        const rankClass = rank <= 3 ? `rank-${rank}` : '';
+        const total = computeTotal(u, visibleSections);
+        const status = u.status || 'PENDING';
+        const statusClass = 'status-' + status.toLowerCase();
+        const statusLabel = status === 'INPROGRESS' ? 'In Progress'
+          : status.charAt(0) + status.slice(1).toLowerCase();
+
+        let scoreCells = '';
+        visibleSections.forEach(s => {
+          const val = (u.sectionScores || {})[s] || 0;
+          const max = maxPerSection[s];
+          const pct = max > 0 ? Math.round((val / max) * 100) : 0;
+          const cls = val === 0 ? 'score-0' : val < 4 ? 'score-low' : val < 8 ? 'score-mid' : 'score-high';
+          scoreCells += `<td class="score-cell">
+            <div class="score-bar-wrap">
+              <span class="${cls}">${val > 0 ? val : '—'}</span>
+              <div class="score-mini-bar"><div class="score-mini-fill" style="width:${pct}%"></div></div>
+            </div>
+          </td>`;
+        });
+
+        html += `<tr>
+          <td class="col-rank ${rankClass}">${rank <= 3 ? ['🥇','🥈','🥉'][rank-1] : rank}</td>
+          <td class="col-user">
+            <div class="user-id">${esc(u.userId)}</div>
+            <a class="user-link" href="${esc(u.profileLink||'#')}" target="_blank" rel="noopener">↗ profile</a>
+          </td>
+          <td>
+            <span class="status-badge ${statusClass}">
+              <span class="status-dot"></span>${statusLabel}
+            </span>
+          </td>
+          <td class="col-total total-highlight">${total > 0 ? total : '—'}</td>
+          ${scoreCells}
+        </tr>`;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function computeTotal(user, sections) {
+      const scores = user.sectionScores || {};
+      if (sections.length === 0) return user.totalSolved || 0;
+      return sections.reduce((s, k) => s + (scores[k] || 0), 0);
+    }
+
+    function esc(str) {
+      if (!str) return '';
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ─── CSV PANEL ────────────────────────────────────────────────────
+    function toggleCsvPanel() {
+      document.getElementById('csv-panel').classList.toggle('open');
+    }
+
+    async function loadCsv() {
+      try {
+        const resp = await fetch(`${API}/api/csv`);
+        const data = await resp.json();
+        document.getElementById('csv-editor').value = data.content || '';
+      } catch (e) { /* ignore */ }
+    }
+
+    async function saveCsv() {
+      const content = document.getElementById('csv-editor').value;
+      try {
+        const resp = await fetch(`${API}/api/csv`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          showToast('CSV saved!', 'success');
+          document.getElementById('csv-panel').classList.remove('open');
+        } else {
+          showToast('Failed: ' + data.message, 'error');
+        }
+      } catch (e) {
+        showToast('Error saving CSV', 'error');
+      }
+    }
+
+    // ─── EXPORT CSV ───────────────────────────────────────────────────
+    function exportLeaderboard() {
+      if (leaderboardData.length === 0) {
+        showToast('No data to export — refresh first', 'error');
+        return;
+      }
+
+      const visibleSections = allSections.filter(s => selectedSections.has(s));
+
+      // Build sorted data (same order as current table)
+      const sorted = [...leaderboardData].sort((a, b) => {
+        if (sortCol === 'total') {
+          return sortAsc
+            ? computeTotal(a, visibleSections) - computeTotal(b, visibleSections)
+            : computeTotal(b, visibleSections) - computeTotal(a, visibleSections);
+        }
+        if (sortCol === 'user') {
+          return sortAsc ? a.userId.localeCompare(b.userId) : b.userId.localeCompare(a.userId);
+        }
+        const va = (a.sectionScores || {})[sortCol] || 0;
+        const vb = (b.sectionScores || {})[sortCol] || 0;
+        return sortAsc ? va - vb : vb - va;
+      });
+
+      // Header row
+      const headers = ['Rank', 'UserID', 'Status', 'Total', ...visibleSections];
+      const rows = [headers];
+
+      sorted.forEach((u, i) => {
+        const total = computeTotal(u, visibleSections);
+        const sectionCols = visibleSections.map(s => (u.sectionScores || {})[s] || 0);
+        rows.push([i + 1, u.userId, u.status || 'PENDING', total, ...sectionCols]);
+      });
+
+      // Serialize to CSV string — quote fields that contain commas
+      const csvContent = rows.map(row =>
+        row.map(cell => {
+          const s = String(cell);
+          return s.includes(',') || s.includes('"') || s.includes('\n')
+            ? '"' + s.replace(/"/g, '""') + '"'
+            : s;
+        }).join(',')
+      ).join('\r\n');
+
+      // Build timestamped filename: being-infinity-coding-bat-leaderboard-MM-DD-YYYY-HH-MM-SS.csv
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const mm   = pad(now.getMonth() + 1);
+      const dd   = pad(now.getDate());
+      const yyyy = now.getFullYear();
+      const hh   = pad(now.getHours());
+      const min  = pad(now.getMinutes());
+      const ss   = pad(now.getSeconds());
+      const filename = `being-infinity-coding-bat-leaderboard-${mm}-${dd}-${yyyy}-${hh}-${min}-${ss}.csv`;
+
+      // Trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`Exported: ${filename}`, 'success');
+    }
+
+    // ─── TOAST ────────────────────────────────────────────────────────
+    let toastTimeout;
+    function showToast(msg, type='') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'show' + (type ? ' ' + type : '');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => { t.className = ''; }, 3500);
+    }
+
+    init();
+  </script>
+</body>
+</html>
